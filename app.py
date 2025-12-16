@@ -44,7 +44,7 @@ try:
         if not selected_variant.uri:
             raise Exception("No URI found for selected variant playlist.")
         playlist_url = selected_variant.uri
-        
+
     info("Fetching variant playlist...")
     variant = cdn.get_data(client, playlist_url)
     if variant is None:
@@ -52,7 +52,15 @@ try:
     with open(f"out/{movie_id}_variant.m3u8", "w", encoding="utf-8") as f:
         f.write(variant)
     variant_data = m3u8.load_playlist(variant)
-    for i in range(len(variant_data.segments)):
+    i: int = 0
+    if getenv("START_SEGMENT"):
+        start_segment = int(getenv("START_SEGMENT", 0))
+        if 0 < start_segment <= len(variant_data.segments):
+            i = start_segment - 1
+            info(f"Resuming from segment {start_segment}...")
+        else:
+            warning("Invalid START_SEGMENT value, starting from the beginning...")
+    while i < len(variant_data.segments):
         segment = variant_data.segments[i]
         info(f"Segment {i + 1}: {segment.uri}")
         if not segment.uri:
@@ -64,6 +72,8 @@ try:
             continue
         with open(f"out/{movie_id}_segment_{i + 1}.ts", "wb") as f:
             f.write(data)
+        i += 1
+    info("All segments downloaded successfully.")
 
 except Exception as e:
     error(f"An error occurred: {e}")
