@@ -2,3 +2,5 @@
 out/
 .env
 **/.DS_Store
+.venv
+.idea
